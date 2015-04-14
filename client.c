@@ -14,8 +14,8 @@ int main(int argc, char *argv[]){
     int			sock_send;
     struct sockaddr_in	addr_send;
     char			text[80],buf[BUF_SIZE];
-    int			send_len,bytes_sent;
-        /* create socket for sending data */
+    int			send_len,bytes_sent,bytes_received,incom_len;
+    /* create socket for sending data */
     sock_send=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock_send < 0){
         printf("socket() failed\n");
@@ -36,9 +36,13 @@ int main(int argc, char *argv[]){
 
         strcpy(buf,text);
         send_len=strlen(text);
+	incom_len =  sizeof(addr_send);
         bytes_sent=sendto(sock_send, buf, send_len, 0,(struct sockaddr *) &addr_send, sizeof(addr_send));
-        }
-
+        bytes_received=recvfrom(sock_send,text,200,0,(struct sockaddr *)&addr_send, &incom_len);
+	text[bytes_received]=0;
+	printf("%s",text);
+	  }
+    
     close(sock_send);
 }
 

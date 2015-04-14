@@ -10,7 +10,7 @@
 #define LISTEN_PORT	60000
 
 int main(int argc, char *argv[]){
-    int			sock_recv;
+    int			sock_recv,bytes_sent;
     struct sockaddr_in	my_addr;
     int			i;
     fd_set	readfds,active_fd_set,read_fd_set;
@@ -47,16 +47,16 @@ int main(int argc, char *argv[]){
         select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
         /*select_ret=select(sock_recv+1,&readfds,NULL,NULL,&timeout);*/
         if (select_ret > 0){		/* anything arrive on any socket? */
-            /*puts("I received something");*/
+
             incoming_len=sizeof(remote_addr);	/* who sent to us? */
             recv_msg_size=recvfrom(sock_recv,buf,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);
            /*puts("After receiving...");*/
             if (recv_msg_size > 0){	/* what was sent? */
                 buf[recv_msg_size]='\0';
-              /*puts("After receiving2...");*/
+            
                 printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);
-                /*printf("From  received:%s \n",buf);*/
-                 /*puts("After receiving3...");*/
+        	bytes_sent=sendto(sock_recv,"Received\n",strlen("Received\n"),0,(struct sockaddr *)&remote_addr,incoming_len); 
+                 
              }
             }
         
@@ -67,6 +67,5 @@ int main(int argc, char *argv[]){
 
     close(sock_recv);
 }
-
 
 
