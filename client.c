@@ -13,7 +13,7 @@
 int main(int argc, char *argv[]){
     int			sock_send;
     struct sockaddr_in	addr_send;
-    char			text[80],buf[BUF_SIZE];
+    char			text[80],buf[BUF_SIZE],username[20];
     int			send_len,bytes_sent,bytes_received,incom_len;
     /* create socket for sending data */
     sock_send=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -27,9 +27,19 @@ int main(int argc, char *argv[]){
     addr_send.sin_family = AF_INET;  /* address family */
     addr_send.sin_addr.s_addr = inet_addr(SERVER_IP);
     addr_send.sin_port = htons((unsigned short)SERVER_PORT);
-
+    //Welcome Prompt
+    char welcomeprompt[]="\n Welcome to the chat\nEnter a username to use: ";
+    printf("%s",welcomeprompt);
+    scanf("%s",username);
+    //sends username
+    bytes_sent=sendto(sock_send, username, sizeof(username), 0,(struct sockaddr *) &addr_send, sizeof(addr_send));
     while(1){
-        printf("Send? ");
+	//receives online list
+	bytes_received=recvfrom(sock_send,text,200,0,(struct sockaddr *)&addr_send, &incom_len);
+	text[bytes_received]='\0';
+	printf("%s",text);
+	
+	printf("Send? ");
         scanf("%s",text);
         if (strcmp(text,"quit") == 0)
             break;
@@ -38,9 +48,7 @@ int main(int argc, char *argv[]){
         send_len=strlen(text);
 	incom_len =  sizeof(addr_send);
         bytes_sent=sendto(sock_send, buf, send_len, 0,(struct sockaddr *) &addr_send, sizeof(addr_send));
-        bytes_received=recvfrom(sock_send,text,200,0,(struct sockaddr *)&addr_send, &incom_len);
-	text[bytes_received]=0;
-	printf("%s",text);
+        
 	  }
     
     close(sock_send);
