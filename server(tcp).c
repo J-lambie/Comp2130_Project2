@@ -7,9 +7,13 @@
 #include <stdlib.h>	/* exit() warnings */
 #include <string.h>	/* memset warnings */
 #include <arpa/inet.h>
+#include <sys/time.h>//FD_ISSSET
 
 #define BUF_SIZE	1024
-#define LISTEN_PORT	60000
+#define PORT		60000
+#define MAX_CLIENTS	20
+#define TRUE		1
+#define FALSE		0
 //Register Screen
 char register_Screen[]="\nWhich group do you Wish to register for:\n1-WorkGroup\n2-FunGroup\n";
 char register_Request[]="\nYou are not register for the group.\nWould you like to register(y/n)?\n";
@@ -25,7 +29,7 @@ struct clients{
 	int addr_len;
 	int sock_recv;
 };
-struct clients client[200];
+struct clients client[MAX_CLIENTS];
 //Registers client to a group based on input from client
 //Returns 1 if sucessful and -1 if not sucessful
 int checkChat(int j,char* buf,int response)
@@ -87,51 +91,103 @@ int checkChat(int j,char* buf,int response)
 
 //main
 int main(int argc, char *argv[]){
-    int			sock_recv,bytes_sent;
+    int			sock_recv,bytes_sent,master_socket,opt=TRUE;
     struct sockaddr_in	my_addr;
     int			i,j=0;
-    fd_set	readfds,active_fd_set,read_fd_set;
-    struct timeval		timeout={0,0};
-    int			incoming_len;
+    fd_set		readfds;
+    struct timeval	timeout={0,0};
+    int			incoming_len,max_sd,sd,addr_len;
     struct sockaddr_in	remote_addr;
     int			recv_msg_size;
-    char			buf[BUF_SIZE];
+    char		buf[BUF_SIZE];
     int			select_ret;
-    struct clients client[200];
+    struct clients client[MAX_CLIENTS];
 
-            /* create socket for receiving */
-    sock_recv=socket(AF_INET, SOCK_STREAM,0);
-    if (sock_recv < 0){
+    //initalise all sockets
+     for(i=0;i<MAX_CLIENTS;i++)
+     {
+	client[i].sock_recv=0;
+     }
+
+    //Master Socket creation
+    master_socket=socket(AF_INET, SOCK_STREAM,0);
+    if (master_socket ==0){
         printf("socket() failed\n");
         exit(0);
     }
+    //Set up master sockect to allow multiple connections
+    if(setsockopt(master_socket,SOL_SOCKET,SO_REUSEADDR,(char *)&opt,sizeof(opt))<0)
+	{
+		printf("setsockopt failed");
+		exit(0);
+	}
         /* make local address structure */
     memset(&my_addr, 0, sizeof (my_addr));	/* zero out structure */
+    //socket structure
     my_addr.sin_family = AF_INET;	/* address family */
-    my_addr.sin_addr.s_addr = htonl(INADDR_ANY);  /* current machine IP */
-    my_addr.sin_port = htons((unsigned short)LISTEN_PORT);
+    my_addr.sin_addr.s_addr =INADDR_ANY;  /* current machine IP */
+    my_addr.sin_port = htons(PORT);
         /* bind socket to the local address */
-    i=bind(sock_recv, (struct sockaddr *) &my_addr, sizeof (my_addr));
-    if (i < 0){
+    if(bind(master_socket, (struct sockaddr *) &my_addr, sizeof (my_addr))< 0){
         printf("bind() failed\n");
         exit(0);
     }
-       FD_ZERO(&readfds);		/* zero out socket set */
-       FD_SET(sock_recv,&readfds);	/* add socket to listen to */
+       
         /* listen ... */
+    if(listen(master_socket,3)<0)
+	{
+		printf("Error on listen");
+		exit(0);
+	}
+	//accept the incoming connections
+    addr_len=sizeof(my_addr);
+
+
 char onlineList[500]="Online\n* -Workgroup\n+ -FunGroup\n";
 char onlinePer[500]="";
     while (1){
-        read_fd_set = active_fd_set;
-        select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
+	printf("inside loop");
+       FD_ZERO(&readfds);		/* zero out socket set */
+       FD_SET(master_socket,&readfds);	/* add socket to listen to */
+        max_sd = master_socket;
+        //add child sockets to set
+        for ( i = 0 ; i < MAX_CLIENTS ; i++) 
+        {
+            //socket descriptor
+            sd = client[i].sock_recv;
+             
+            //if valid socket descriptor then add to read list
+            if(sd > 0)
+                FD_SET( sd , &readfds);
+             
+            //highest file descriptor number, need it for the select function
+            if(sd > max_sd)
+                max_sd = sd;
+        }
+	//waiting for activity
+        select_ret=select(max_sd+1,&readfds,NULL,NULL,NULL);
 	
-        if (select_ret > 0){		/* anything arrive on any socket? */
-	   
+	// 	
+
+
+	if(select_ret<0)
+	{
+		printf("select Error");
+	}
+	
+        if (FD_ISSET(master_socket,&readfds)){		/* anything arrive on any socket? */
+	   printf("fd_ISSet reach");
 	   incoming_len=sizeof(remote_addr);	/* who sent to us? */
 	   client[j].addr=remote_addr;
 	   client[j].addr_len=sizeof(remote_addr);
            client[j].sock_recv=sock_recv;
-      	    //receives username     
+      	    
+	   if(sock_recv=accept(master_socket,(struct sockaddr *) &my_addr, &addr_len) <0){
+		printf("accept failure");
+		exit(0);	
+	    }
+
+//receives username     
 	   recv_msg_size=recvfrom(sock_recv,buf,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);
            /*puts("After receiving...");*/
             if (recv_msg_size > 0){	/* what was sent? */

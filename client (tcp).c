@@ -1,3 +1,5 @@
+//Group Members: 620067270 and 620069957
+//due date:15 April, 2015
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -8,7 +10,7 @@
 
 #define BUF_SIZE	1024
 #define SERVER_IP	"127.0.0.1"
-#define	SERVER_PORT	60000
+#define	PORT		60000
 
 int main(int argc, char *argv[]){
     int			sock_send;
@@ -24,9 +26,14 @@ int main(int argc, char *argv[]){
 
             /* fill the address structure for sending data */
     memset(&addr_send, 0, sizeof(addr_send));  /* zero out structure */
+   
     addr_send.sin_family = AF_INET;  /* address family */
     addr_send.sin_addr.s_addr = inet_addr(SERVER_IP);
-    addr_send.sin_port = htons((unsigned short)SERVER_PORT);
+    addr_send.sin_port = htons(PORT);
+ if (connect(sock_send,(struct sockaddr *) &addr_send,sizeof(addr_send)) < 0) {
+        printf("ERROR connecting");
+        exit(0);
+    }
     //Welcome Prompt
     char welcomeprompt[]="\n Welcome to the chat\nEnter a username to use: ";
     printf("%s",welcomeprompt);

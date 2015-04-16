@@ -1,3 +1,5 @@
+//Group Members: 620067270 and 620069957
+//due date:15 April, 2015
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -38,17 +40,19 @@ int main(int argc, char *argv[]){
 	bytes_received=recvfrom(sock_send,text,200,0,(struct sockaddr *)&addr_send, &incom_len);
 	text[bytes_received]='\0';
 	printf("%s",text);
-	
-	printf("Send? ");
-        scanf("%s",text);
-        if (strcmp(text,"quit") == 0)
+	scanf("%s",text);
+	if (strcmp(text,"quit") == 0)
             break;
 
         strcpy(buf,text);
         send_len=strlen(text);
 	incom_len =  sizeof(addr_send);
+	//sends input to server
         bytes_sent=sendto(sock_send, buf, send_len, 0,(struct sockaddr *) &addr_send, sizeof(addr_send));
-        
+	//listen to response
+        //bytes_received=recvfrom(sock_send,text,200,0,(struct sockaddr *)&addr_send, &incom_len);
+	//text[bytes_received]='\0';
+	//printf("%s",text);
 	  }
     
     close(sock_send);
